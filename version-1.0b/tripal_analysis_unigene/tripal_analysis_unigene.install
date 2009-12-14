@@ -1,0 +1,39 @@
+<?php
+//$Id:
+
+/*******************************************************************************
+ * Implementation of hook_install().
+ */
+function tripal_analysis_unigene_install() {
+   // create the module's data directory
+   tripal_create_moddir('tripal_analysis_unigene');
+
+   // We need to register to tripal_analysis module so it can provide a control
+   // for our unigene result. Basically the registration is done by inserting
+   // required information into the {tripal_analysis} table.
+   $sql = "INSERT INTO {tripal_analysis} (modulename) ".
+          "VALUES ('%s')";
+   db_query($sql, 'tripal_analysis_unigene');
+}
+
+/*******************************************************************************
+ * Implementation of hook_uninstall().
+ */
+function tripal_analysis_unigene_uninstall() {
+   
+   // Delete the settings from {tripal_analysis} table
+   // Drupal complains when the user tries to uninstall tripal_analysis 
+   // and tripal_analysis_unigene at the same time. This is because Drupal drops
+   // the {tripal_analysis} table before we can delete anything from it. Thus,
+   // we perform a db_table_exists() check before the deletion
+   
+   if (db_table_exists('tripal_analysis')) {
+      $sql = "DELETE FROM {tripal_analysis} ".
+             "WHERE modulename='%s'";
+      db_query ($sql, 'tripal_analysis_unigene');
+   }
+   // Delete module's variables from variables table.
+   db_query("DELETE FROM {variable} WHERE name='%s'",
+            'tripal_analysis_unigene_setting');
+   
+}

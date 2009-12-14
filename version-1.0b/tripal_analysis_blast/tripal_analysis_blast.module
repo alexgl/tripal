@@ -1,0 +1,550 @@
+<?php
+// $Id:
+// Copyright 2009 Clemson University
+/*******************************************************************************
+ * Tripal Blast Result lets users show/hide blast results associated
+ * with a tripal feature
+ ******************************************************************************/
+function tripal_analysis_blast_init(){
+   // Add javascript and style sheet
+   drupal_add_css(drupal_get_path('theme', 'tripal').
+                                  '/css/tripal_analysis_blast.css');
+   drupal_add_js(drupal_get_path('theme', 'tripal').
+                                 '/js/tripal_analysis_blast.js');
+}
+
+/*******************************************************************************
+ * tripal_analysis_blast_menu()
+ * HOOK: Implementation of hook_menu()
+ * Entry points and paths of the module
+ */
+function tripal_analysis_blast_menu() {
+   //Show top 10/25/all blast results for ajax calls
+   $items['tripal_top_blast'] = array(
+      'path' => 'top_blast',
+      'title' => t('Blast Hits'),
+      'page callback' => 'tripal_get_blast_results',
+      'page arguments' => array(1,2,3,'1'),
+      'access arguments' => array('access content'),
+      'type' => MENU_CALLBACK
+   );
+
+   return $items;
+}
+
+
+/*******************************************************************************
+ * tripal_analysis_blast_nodeapi()
+ * HOOK: Implementation of hook_nodeapi()
+ * Display blast results for allowed node types
+ */
+function tripal_analysis_blast_nodeapi(&$node, $op, $teaser, $page) {
+
+
+   switch ($op) {
+      case 'view':
+         // Find out which node types for showing the blast
+         $types_to_show = variable_get('tripal_analysis_blast_setting',
+                                       array('chado_feature'));
+
+         // Abort if this node is not one of the types we should show.
+         if (!in_array($node->type, $types_to_show, TRUE)) {
+            break;
+         }
+         // Add blast to the content item if it's not a teaser
+         if (!$teaser && $node->feature->feature_id) {
+            if($node->build_mode == NODE_BUILD_SEARCH_INDEX){
+               $node->content['tripal_analysis_blast_index_version'] = array(
+                  '#value' => theme('parse_NCBI_Blast_XML_index_version',$node),
+                  '#weight' => 4,
+               );
+            } else {
+
+               // Show blast result if not at teaser view
+               $node->content['tripal_analysis_blast_form'] = array(
+                  '#value' => theme('tripal_analysis_blast_results', $node),
+                  '#weight' => 4
+               );
+            }
+         }
+   }
+}
+/************************************************************************
+ *  We need to let drupal know about our theme functions and their arguments.
+ *  We create theme functions to allow users of the module to customize the
+ *  look and feel of the output generated in this module
+ */
+function tripal_analysis_blast_theme () {
+   return array(
+      'parse_NCBI_Blast_XML_index_version' => array (
+         'arguments' => array('node'),
+      ),
+      'tripal_analysis_blast_results' => array (
+         'arguments' => array('node'),
+      )
+   );
+}
+/*******************************************************************************
+ * Prepare blast result for the feature shown on the page
+ */
+function theme_tripal_analysis_blast_results ($node) {
+   $feature = $node->feature;
+   $content = tripal_get_blast_results($feature->feature_id,0,10,0);
+   return $content;
+}
+
+/*******************************************************************************
+ * Prepare blast result for the feature shown on the page
+ */
+function theme_parse_NCBI_Blast_XML_index_version ($node) {
+   $feature = $node->feature;
+   $content = tripal_get_blast_results_index_version($feature->feature_id, 0);
+   return $content;
+}
+
+/*******************************************************************************
+ * tripal_get_blast_results()
+ * Scanning the file folder for blast results.
+ */
+function tripal_get_blast_results($feature_id,$db_id,$max,$ajax){
+   // we use this prepared SQL statement for finding the database id
+   // for the database to which the blast results belong.
+   $db_sql = 'SELECT * FROM DB WHERE DB_ID = %d';
+
+   // get the directory prefix
+   $prefix = preg_replace("/^(\d*)\d{3}$/","$1",$feature_id);
+   if(!$prefix or $prefix == $feature_id){
+      $prefix = '0';
+   }
+   $data_url = file_directory_path() .
+      "/tripal/tripal_analysis_blast/$prefix/$feature_id";
+   $xml_files = file_scan_directory("$data_url",'\.xml$');
+
+   // get the HTML content for viewing each of the XML file
+   foreach($xml_files as $file){
+      if(!$db_id || $db_id == $file->name){
+         // the filename is the actual db_id. Let's get that
+         $previous_db = db_set_active('chado');  // use chado database
+         $database = db_fetch_object(db_query($db_sql,$file->name));
+         db_set_active($previous_db);  // now use drupal database
+         $content .= parse_NCBI_Blast_XML("$data_url/$file->basename",
+              $database,$max,$feature_id,$ajax);
+      }
+   }
+
+   // since this function provides output for addition into
+   // a feature page, as well as an AJAX refresh of content
+   // within the blast hits we need to setup the return
+   // different depending on the request type
+   if($ajax){
+      drupal_json(array('update' => $content));
+   } else {
+      return $content;
+   }
+}
+/*******************************************************************************
+ * Scanning the file folder for blast results and prepare content for indexing
+ */
+function tripal_get_blast_results_index_version ($feature_id,$db_id){
+   // we use this prepared SQL statement for finding the database id
+   // for the database to which the blast results belong.
+   $db_sql = 'SELECT * FROM DB WHERE DB_ID = %d';
+
+   // get the directory prefix
+   $prefix = preg_replace("/^(\d*)\d{3}$/","$1",$feature_id);
+   if(!$prefix or $prefix == $feature_id){
+      $prefix = '0';
+   }
+
+   $data_url = file_directory_path() .
+      "/tripal/tripal_analysis_blast/$prefix/$feature_id";
+   $xml_files = file_scan_directory("$data_url",'\.xml$');
+
+   // get the HTML content for viewing each of the XML file
+   foreach($xml_files as $file){
+      if(!$db_id || $db_id == $file->name){
+         // the filename is the actual db_id. Let's get that
+         $previous_db = db_set_active('chado');  // use chado database
+         $database = db_fetch_object(db_query($db_sql,$file->name));
+         db_set_active($previous_db);  // now use drupal database
+         $content .= parse_NCBI_Blast_XML_index_version(
+              "$data_url/$file->basename",$database,$feature_id);
+      }
+   }
+   return $content;
+}
+/*******************************************************************************
+ * parse_NCBI_Blast_XML()
+ * Parse XML BLAST result and generate HTML output
+ */
+function parse_NCBI_Blast_XML($filename,$db,$max,$feature_id,$ajax) {
+
+   // get a human readable version of the database name
+   if(preg_match('/swissprot/i',$db->name)){
+      $db_name = "ExPASy Swissprot";
+   }
+   if(preg_match('/DB:genbank/i',$db->name)){
+      $db_name = "NCBI nr";
+   }
+	if(preg_match('/go-seqdb/i',$db->name)){
+      $db_name = "Gene Ontology SeqDB";
+   }
+   // add a URL for this database if one exists
+   if($db->url){
+      $db_name = "<a href=\"$db->url\">$db_name</a>";
+   }
+
+   $url = url("/sites/all/themes/tripal/images/ajax-loader.gif");
+   // generate the HTML header for the table of blast results
+   if(!$ajax){  // don't regenerate the header divs if this is an ajax request
+      // add on the ajaxLoading box for use when updating via ajax
+      $html_out .= "<div id=\"tripal_ajaxLoading\" style=\"display:none\">".
+                   "<div id=\"loadingText\">Loading...</div>".
+                   "<img src=\"$url\"></div>";
+      $html_out .= "<div id=\"blast-hits\" class=\"blast-info-box\">".
+                   "<div class=\"tripal_expandableBox\">".
+                   "<h3>$db_name Blast Hits</h3></div>".
+                   "<div class=\"tripal_expandableBoxContent\" ".
+                   "id=\"blast_db_$db->db_id\">";
+   };
+
+   // Here we show the feature name again to check if we pull the correct data
+   // The checking codes are removable after we confirm the balst function works
+   // correctly
+   $previous_db = db_set_active('chado');
+   $sql_fname = "SELECT name FROM feature WHERE feature_id=$feature_id";
+   $fname = db_result(db_query($sql_fname));
+   $html_out .= "Query: $fname<br>";
+   db_set_active($previous_db);
+   // End of checking codes
+
+   // add the links for updating blast info using Ajax
+   if($max != 10){
+      $url = url("tripal_top_blast/$feature_id/$db->db_id/10");
+      $html_out .= "<span><a onclick=\"return tripal_update_blast(".
+                   "this,$db->db_id)\" href=\"$url\">Show Best 10 Hits</a> | </span>";
+   } else {
+      $html_out .= "<span>Best 10 Hits Shown | </span>";
+   }
+   if($max != 25){
+      $url = url("tripal_top_blast/$feature_id/$db->db_id/25");
+      $html_out .= "<span><a onclick=\"return tripal_update_blast(".
+                   "this,$db->db_id)\" href=\"$url\">Show Best 25 Hits</a> | </span>";
+   } else {
+      $html_out .= "<span>Best 25 Hits Shown | </span>";
+   }
+   if($max != 0){
+      $url = url("tripal_top_blast/$feature_id/$db->db_id/0");
+      $html_out .= "<span><a onclick=\"return tripal_update_blast(".
+                   "this,$db->db_id)\" href=\"$url\">Show All Hits</a>  </span>";
+   } else {
+      $html_out .= "<span>All Hits Shown</span>";
+   }
+
+   $html_out .= '<br><span><i>Note:</i> Click a description for more details.'.
+                '</span>';
+   $html_out .= '<span><table class="blast_results_table">'.
+                '  <tr>'.
+                '    <th nowrap>Match Name</th>'.
+                '    <th nowrap>E value</th>'.
+                '    <th nowrap>Identity</th>'.
+                '    <th nowrap>Description</th>'.
+                '  </tr>';
+
+   // Load the file.  This XML file should be an extract
+   // of the original XML file with only a single iteration.
+   // An iteration is essentially all the hits for a single
+   // query sequence.
+   $iteration = simplexml_load_file($filename);
+
+   // now run through the blast hits/hsps of this iteration
+   // and generate the rows of the table
+   foreach($iteration->children() as $child) {
+
+      // we need the hits for this iteration
+      if($child->getName() == 'Iteration_hits'){
+         foreach($child->children() as $hits){
+            // if we've hit the maximum number of hits then
+            // return
+            if($max > 0 && $hit_count >= $max){
+               $html_out .= '</table></span>';
+               if(!$ajax){
+                  $html_out .= '</div></div>';
+               }
+               return $html_out;
+            }
+            $hit_count++;
+            $best_evalue = 0;
+            foreach($hits->children() as $hit){
+               $best_evalue = 0;
+               $element_name = $hit->getName();
+               if($element_name == 'Hit_def'){
+                  if(preg_match('/swissprot/i',$db->name)){
+                     // the Uniprot Swissprot accession number is the scond
+                     // term in the description where the '|' is the
+                     // delimeter
+                     $accession = preg_replace("/^(.*?)\|.*?\s.*?$/","$1",$hit);
+                     $hit_name = preg_replace("/^.*?\|(.*?)\s.*?$/","$1",$hit);
+                     $description = preg_replace("/^.*?\|.*?\s(.*)$/","$1",
+                                                 $hit);
+                  }
+                  else if(preg_match('/DB:genbank/i',$db->name)){
+                     $description = $hit;
+                  }
+						else if(preg_match('/go-seqdb/i',$db->name)){
+							$hit_name = '';
+							$matches = array();
+							if(preg_match_all("/(GO:\d+)/",$hit,$matches,
+                                       PREG_PATTERN_ORDER)){
+							   $hit_name = implode("<BR>",array_unique($matches[1]));
+							}
+							$description = $hit;
+							$accession = '';
+                  }
+                  else {
+                     //$hit_name = preg_replace("/^(.*?)\s.*$/","$1",$hit);
+                     $hit_name = preg_replace("/^(.*?) [\[|>].*$/","$1",$hit);
+                     $description = $hit;
+                  }
+               }
+               if($element_name == 'Hit_id'){
+                  if(preg_match('/DB:genbank/i',$db->name)){
+                     // $hit_name = $hit;
+                  }
+               }
+               if($element_name == 'Hit_accession'){
+                  if(preg_match('/DB:genbank/i',$db->name)){
+                     $accession = $hit;
+                     $hit_name = $hit;
+                  }
+               }
+               // now run through each HSP for this hit
+               if($element_name == 'Hit_hsps'){
+                  foreach($hit->children() as $hsp){
+                     foreach($hsp->children() as $hsp_info){
+                        $element_name = $hsp_info->getName();
+                        if($element_name == 'Hsp_num'){
+                           $hsp_num = $hsp_info;
+                        }
+                        if($element_name == 'Hsp_bit-score'){
+                           $hsp_bit_score = $hsp_info;
+                        }
+                        if($element_name == 'Hsp_score'){
+                           $hsp_score = $hsp_info;
+                        }
+                        if($element_name == 'Hsp_evalue'){
+                           $hsp_evalue = $hsp_info;
+                           // use the first evalue for this set of HSPs
+                           // as the best evalue. This get's shown as
+                           // info for the overall match.
+                           if(!$best_evalue){
+                              $best_evalue = $hsp_evalue;
+                           }
+                        }
+                        if($element_name == 'Hsp_query-from'){
+                           $hsp_query_from = $hsp_info;
+                        }
+                        if($element_name == 'Hsp_query-to'){
+                           $hsp_query_to = $hsp_info;
+                        }
+                        if($element_name == 'Hsp_hit-from'){
+                           $hsp_hit_from = $hsp_info;
+                        }
+                        if($element_name == 'Hsp_hit-to'){
+                           $hsp_hit_to = $hsp_info;
+                        }
+                        if($element_name == 'Hsp_query-frame'){
+                           $hsp_query_frame = $hsp_info;
+                        }
+                        if($element_name == 'Hsp_identity'){
+                           $hsp_identity = $hsp_info;
+                        }
+                        if($element_name == 'Hsp_positive'){
+                           $hsp_positive = $hsp_info;
+                        }
+                        if($element_name == 'Hsp_align-len'){
+                           $hsp_align_len = $hsp_info;
+                        }
+                        if($element_name == 'Hsp_qseq'){
+                           $hsp_qseq = $hsp_info;
+                        }
+                        if($element_name == 'Hsp_hseq'){
+                           $hsp_hseq = $hsp_info;
+                        }
+                        if($element_name == 'Hsp_midline'){
+                           $hsp_midline = $hsp_info;
+                        }
+                     }
+                     if($hsp_num > 1){
+                     //   $html_out .="<br>";
+                     }
+                     $hsp_html_out .="<b>HSP $hsp_num</b> <pre>Score: ".
+                                     "$hsp_bit_score bits ($hsp_score), ".
+                                     "Expect = $hsp_evalue<br>";
+                     $hsp_html_out .= sprintf("Identity = %d/%d (%.2f%%), ".
+                                              "Postives = %d/%d (%.2f%%), ".
+                                              "Query Frame = $hsp_query_frame".
+                                              "</pre>",
+                                              $hsp_identity, $hsp_align_len,
+                                              $hsp_identity/$hsp_align_len*100,
+                                              $hsp_positive, $hsp_align_len,
+                                              $hsp_positive/$hsp_align_len*100);
+                     $hsp_html_out .= sprintf("<pre>Query: %4d $hsp_qseq %d".
+                                              "<br>",
+                                              $hsp_query_from,$hsp_query_to);
+                     $hsp_html_out .= sprintf("            $hsp_midline<br>");
+                     $hsp_html_out .= sprintf("Sbjct: %4d $hsp_hseq %d</pre>".
+                                              "<br>",
+                                              $hsp_hit_from,$hsp_hit_to);
+                  }
+               }
+            }
+            $html_out .= "<tr>";
+				if($accession){
+               $html_out .= "<td><a href=\"$db->urlprefix$accession\" ".
+                            "target=\"_blank\">$hit_name</a></td>";
+				} else {
+				   $html_out .= "<td>$hit_name</td>";
+				}
+            $html_out .= "<td nowrap>$best_evalue</td>";
+            $percent_identity = number_format($hsp_identity/$hsp_align_len*100,
+                                              2);
+            $html_out .= "<td nowrap>$percent_identity%</td>";
+            $html_out .= "<td><div class=\"tripal_expandableSubBox\">".
+                         "$description</div></td></tr><tr><td colspan=4><div class=".
+                         "\"tripal_expandableSubBoxContent\">".
+                         "$hsp_html_out</div><td></tr>";
+            $hsp_html_out = '';
+         }
+      }
+   }
+   $html_out .= '</table></span>';
+   if(!$ajax){
+      // we don't have the header div's when ajax is being used to update
+      $html_out .= '</div></div>';
+   }
+   return $html_out;
+}
+/*******************************************************************************
+* Parse NCBI Blast results for indexing so that user can use blast results to
+* find corresponding features
+*/
+function parse_NCBI_Blast_XML_index_version($filename,$db,$feature_id) {
+
+   // get a human readable version of the database name
+   if(preg_match('/swissprot/i',$db->name)){
+      $db_name = "ExPASy Swissprot";
+   }
+   if(preg_match('/DB:genbank/i',$db->name)){
+      $db_name = "NCBI nr";
+   }
+   if(preg_match('/go-seqdb/i',$db->name)){
+      $db_name = "Gene Ontology SeqDB";
+   }
+
+   $html_out .= "<h3>$db_name</h3>";
+
+   // Load the file.  This XML file should be an extract
+   // of the original XML file with only a single iteration.
+   // An iteration is essentially all the hits for a single
+   // query sequence.
+   $iteration = simplexml_load_file($filename);
+
+   // now run through the blast hits/hsps of this iteration
+   // and generate the rows of the table
+   foreach($iteration->children() as $child) {
+      // we need the hits for this iteration
+      if($child->getName() == 'Iteration_hits'){
+         foreach($child->children() as $hits){
+            // if we've hit the maximum number of hits then
+            // return
+            if($hit_count >= 10){
+               return $html_out;
+            }
+            $hit_count++;
+            $best_evalue = 0;
+            foreach($hits->children() as $hit){
+               $best_evalue = 0;
+               $element_name = $hit->getName();
+               if($element_name == 'Hit_def'){
+                  if(preg_match('/swissprot/i',$db->name)){
+                     // the Uniprot Swissprot accession number is the scond
+                     // term in the description where the '|' is the
+                     // delimeter
+                     $accession = preg_replace("/^(.*?)\|.*?\s.*?$/","$1",$hit);
+                     $hit_name = preg_replace("/^.*?\|(.*?)\s.*?$/","$1",$hit);
+                     $description = preg_replace("/^.*?\|.*?\s(.*)$/","$1",
+                                                 $hit);
+                  }
+                  else if(preg_match('/DB:genbank/i',$db->name)){
+                     $description = $hit;
+                  }
+                  else {
+                     //$hit_name = preg_replace("/^(.*?)\s.*$/","$1",$hit);
+                     $hit_name = $hit;
+                  }
+               }
+               if($element_name == 'Hit_id'){
+                  if(preg_match('/DB:genbank/i',$db->name)){
+                     $hit_name = $hit;
+                  }
+               }
+               if($element_name == 'Hit_accession'){
+                  if(preg_match('/DB:genbank/i',$db->name)){
+                     $accession = $hit;
+                  }
+               }
+               // now run through each HSP for this hit
+            }
+            $html_out .= "<p>$hit_name<br>";
+            $html_out .= "$accession<br>";
+            $html_out .= "<b>$description</b></br>";
+            $hsp_html_out = '';
+         }
+      }
+   }
+   return $html_out;
+}
+/*******************************************************************************
+ * Tripal Blast administrative setting form. This function is called by
+ * tripal_analysis module which asks for an admin form to show on the page
+ */
+function tripal_analysis_blast_get_settings() {
+   // Get an array of node types with internal names as keys
+   $options = node_get_types('names');
+   // Add 'chado_feature' to allowed content types for showing blast results
+   $allowedoptions ['chado_feature'] = "Turn on/off Tripal Blast.";
+
+   $form['description'] = array(
+       '#type' => 'item',
+       '#value' => t("Most chado features were analyzed by blast against major sequence databases. This option allows user to display the blast analysis results. Please read user manual for storage and display of blast files. Check the box to enable the analysis results. Uncheck to disable it."),
+		 '#weight' => 0,
+   );
+
+   $form['tripal_analysis_blast_setting'] = array(
+      '#type' => 'checkboxes',
+      '#options' => $allowedoptions,
+      '#default_value' => variable_get('tripal_analysis_blast_setting',
+                                       array('chado_feature')),
+   );
+   $settings->form = $form;
+   $settings->title = "Tripal Blast";
+   return $settings;
+}
+
+/*******************************************************************************
+ * Experimental codes
+ * Tripal Blast administrative setting form. This function is called by
+ * tripal_analysis module which asks for the element to be controlled for
+ * display.
+ *
+function tripal_analysis_blast_get_element() {
+   // Get analysis_id
+   $analysis_id = variable_get('tripal_analysis_blast_analysis_id', 0);
+   $element = array (
+      'analysis_id' => $analysis_id,
+      'element' => '.blast-info-box'
+   );
+   return $element;
+}
+*/

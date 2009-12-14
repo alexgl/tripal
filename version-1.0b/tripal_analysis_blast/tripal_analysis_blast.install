@@ -1,0 +1,136 @@
+<?php
+//$Id:
+
+/*******************************************************************************
+ * Implementation of hook_install().
+ */
+function tripal_analysis_blast_install() {
+   // create the module's data directory
+   tripal_create_moddir('tripal_analysis_blast');
+
+   // We need to register to tripal_analysis module so it can provide a control
+   // for our blast result. Basically the registration is done by inserting
+   // modulename into the drupal {tripal_analysis} table AND inserting required
+   // information to the chado Analysis table. Also in the *.module file,
+   // we need to define HOOK_get_settings() and HOOK_get_element() for the 
+   // the module to work properly.
+   // Inert into drupal's {tripal_analysis}
+   $sql = "INSERT INTO {tripal_analysis} (modulename) ".
+          "VALUES ('%s')";
+   db_query($sql, 'tripal_analysis_blast');
+   
+   /* Experimental codes - add an entry to both chado and drupal
+   // Insert into chado Analysis and synchronize it (i.e. create a node)
+   $new_node = new stdClass();
+   $new_node->type = 'chado_analysis';
+   $new_node->uid = $user->uid;
+   $new_node->analysisname = 'Tripal Blast';
+   $new_node->description = 'Tripal Blast is a visualization tool for viewing '.
+                            'bulk blast results. The blast results are '.
+                            'usually associated with a feature/sequence and '.
+                            'therefore, will be shown (if available) when a '.
+                            'feature is displayed.';
+   $new_node->program = 'blastall';
+   $new_node->programversion = 'tripal controlled version';
+   $new_node->algorithm = 'BLAST';
+   $new_node->sourcename = 'tripal_analysis_blast';
+   $new_node->sourceversion = '1.0';
+   $new_node->sourceuri = 'CUGI';
+   $time = time ();
+   $timeexecuted = array (
+      'month' => date('m', $time),
+      'day' => date('d', $time),
+      'year' => date('y', $time)
+   );
+   $timestamp = date('m/d/y', $time);
+   $new_node->timeexecuted = $timeexecuted;
+   
+   // First add the item to the chado analysis table
+   $sql = "INSERT INTO Analysis ".
+          " (name, description, program, programversion, algorithm, ".
+          "  sourcename, sourceversion, sourceuri, timeexecuted) ".
+          "VALUES ('%s','%s','%s','%s','%s','%s','%s','%s','%s')";
+   $previous_db = db_set_active('chado');  // use chado database
+   db_query($sql,$new_node->analysisname, $new_node->description,
+            $new_node->program, $new_node->programversion,
+            $new_node->algorithm, $new_node->sourcename, 
+            $new_node->sourceversion, $new_node->sourceuri, $timestamp);
+
+   // find the newly entered analysis_id and save it as a drupal variable
+   $sql = "SELECT analysis_id ".
+          "FROM Analysis ".
+          "WHERE program='%s'".
+          "AND programversion='%s'".
+          "AND sourcename='%s'";
+   $analysis_id = db_result(db_query($sql, $new_node->program,
+                                     $new_node->programversion,
+                                     $new_node->sourcename));
+   $new_node->analysis_id = $analysis_id;
+   db_set_active($previous_db);  // switch back to drupal database
+      
+   variable_set('tripal_analysis_blast_analysis_id', $analysis_id);
+   
+   // If we use node_save to create node, it will not work when we enable Tripal
+   // Analysis and Tripal Blast at the same time. Because tripal_analys_insert()
+   // is not yet available to Triapl Blast.
+   node_save($new_node);
+   */
+   
+
+}
+
+
+/*******************************************************************************
+ * Implementation of hook_uninstall().
+ */
+function tripal_analysis_blast_uninstall() {
+   
+   // Delete all information associate with the module
+   // Drupal complains when the user tries to uninstall tripal_analysis 
+   // and tripal_analysis_blast at the same time. This is because Drupal drops
+   // the {tripal_analysis} table before we can delete anything from it. Thus,
+   // we perform a db_table_exists() check before the deletion
+   
+   //Delete the settings from {tripal_analysis} table
+   if (db_table_exists('tripal_analysis')) {
+      $sql = "DELETE FROM {tripal_analysis} ".
+             "WHERE modulename='%s'";
+      db_query ($sql, 'tripal_analysis_blast');
+   }
+   // Delete module's variables from variables table.
+   db_query("DELETE FROM {variable} WHERE name='%s'",
+            'tripal_analysis_blast_setting');
+            
+   /* Experimental codes
+   // Get analysis_id before deletion
+   $analysis_id = variable_get('tripal_analysis_blast_analysis_id', 0);
+
+   // Delete entry from chado's Analysis table
+   $sql = "DELETE FROM Analysis WHERE analysis_id = %d";     
+   $previous_db = db_set_active('chado');
+   db_query($sql, $analysis_id);
+   db_set_active($previous_db);
+                                     
+   if (db_table_exists('tripal_analysis')) {
+
+
+      // Use analysis_id to find node's nid for deletion   
+      $sql = "SELECT nid FROM {chado_analysis} WHERE analysis_id=%d";
+      $nid = db_result(db_query($sql, $analysis_id));  
+      
+      // Delete chado_analysis node from {chado_analysis}
+      $sql = "DELETE FROM {chado_analysis} WHERE nid = %d";
+      db_query($sql, $nid);
+      
+      // Delete chado_analysis node from {node}
+      $sql = "DELETE FROM {node} WHERE nid = %d";
+      db_query($sql, $nid);
+      
+      // Delete chado_analysis node from {node_revisions}
+      $sql = "DELETE FROM {node_revisions} WHERE nid = %d";
+      db_query($sql, $nid);
+   }
+   db_query("DELETE FROM {variable} WHERE name='%s'",
+            'tripal_analysis_blast_analysis_id');
+   */
+}
