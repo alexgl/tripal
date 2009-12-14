@@ -1,0 +1,7 @@
+; $Id: tripal_core.info,v 1.2 2009/05/27 16:37:42 sficklin Exp $
+name = Tripal Core
+description = The core module for the Tripal package that integrates Drupal and GMOD chado. This module provides common support for all Tripal modules.
+core = 6.x
+project = tripal_core
+package = Tripal
+version = "6.x-0.1b-m0.1"
