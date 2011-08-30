@@ -1,9 +1,8 @@
 
 <?php
  //dpm(get_defined_vars(), 'variables');
+  dpm($theme_hook_suggestions, 'theme suggestions');
  $entity = $element['#entity'];
- dpm($entity, 'organism entity?');
- dpm('HERE');
 ?>
 
 <!-- Authoring information -->
@@ -14,7 +13,7 @@ $modification_user = user_load($entity->last_modified_by);
 
 <table id="chado-base-table-base" class="chado-base-table tripal-table tripal-table-vert">
     <tr class="chado-base-table-odd-row tripal-table-odd-row">
-      <th>Genus</th>
+      <th width='33%'>Genus</th>
       <td><?php print $entity->chado->genus ?></td>
     </tr>
     <tr class="chado-base-table-odd-row tripal-table-even-row">
@@ -29,12 +28,16 @@ $modification_user = user_load($entity->last_modified_by);
       <th>Common Name</th>
       <td><?php print $entity->chado->common_name ?></td>
     </tr>
+    <tr class="chado-base-table-odd-row tripal-table-even-row">
+      <th>Breif Description</th>
+      <td><?php print $entity->chado->comment ?></td>    
+    </tr>
 </table>
 
 <h2>Author Information</h2>
  <table id="chado-authoring-table-base" class="chado-authoring-table tripal-table tripal-table-vert">
     <tr class="chado-authoring-table-odd-row tripal-table-even-row">
-      <th>Created By</th>
+      <th width='33%'>Created By</th>
       <td><?php print $creation_user->name ?></td>
     </tr>
     <tr class="chado-authoring-table-odd-row tripal-table-odd-row">

@@ -1,9 +1,6 @@
 
 <?php
- //dpm(get_defined_vars(), 'variables');
  $entity = $element['#entity'];
- dpm($entity, 'organism entity?');
- dpm('HERE');
 ?>
 
 <!-- Authoring information -->

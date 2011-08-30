@@ -87,7 +87,6 @@ function chado_uri ($chado_entity) {
 function chado_load($chado_entity_id, $reset = FALSE) {
 
   $entities = entity_load('chado', array($chado_entity_id), array(), $reset);
-  //dpm($entities, 'entity: '.$chado_entity_id);
   return reset($entities);
   
 }
@@ -196,7 +195,7 @@ function chado_page_view($entity, $view_mode = 'full', $langcode = NULL){
 }
 
 function tripal_core_preprocess_chado(&$vars, $hook) {
-  dpm($vars['element'], 'entity in preprocess');
+  $vars['theme_hook_suggestions'][] = 'chado';
   $vars['theme_hook_suggestions'][] = 'chado__' . $vars['element']['#entity']->chado_type;
 }
 
@@ -355,8 +354,6 @@ function chado_form_submit($form, &$form_state) {
     drupal_set_message('Cannot create chado content of default type', 'error');
     return FALSE;
   }
-  
-  dpm($form_state, 'form state in submit');
 
   $chado_key = db_select('chado_type', 'c')
     ->fields('c', array('chado_table'))
@@ -373,12 +370,12 @@ function chado_form_submit($form, &$form_state) {
         if (!empty($chado_submission[$chado_key])) {
           $chado_id = $chado_submission[$chado_key];
         } else {
-          drupal_set_message('Unable to create chado content -chado_id empty','error');
-          return FALSE;
+          $chado_id = 0;
+          drupal_set_message('No chado content created... '.$function.' needs to return an array including a key/value pair defining the new '.$chado_key,'error');
         }
       } else {
-        drupal_set_message('Cannot create default content -define '.$function.' function','error');
-        return FALSE;
+        $chado_id = 0;
+        drupal_set_message('No chado content created... Implement '.$function,'error');
       }
       
       $update = FALSE;
@@ -446,7 +443,6 @@ function chado_form_submit($form, &$form_state) {
     $chado_submission['chado_entity_id'] = $form_state['storage']['chado_entity']->chado_entity_id;
   }
   $chado_submission = (object)$chado_submission;
-  //dpm($chado_submission, 'chado submission');
   
   // Adds any fields attached via the Field API
   field_attach_submit('chado', $chado_submission, $form, $form_state);

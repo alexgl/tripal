@@ -111,6 +111,12 @@ class ChadoController extends DrupalDefaultEntityController{
       ->condition('chado_entity_id',$chado_entity->chado_entity_id)
       ->execute();
     
+    // use content type-specific hooks to delete chado content
+    $function = 'chado_'.$chado_entity->chado_type.'_delete';
+    if (function_exists($function)) {
+      $function($chado_entity);
+    }
+    
     // Tell Drupal that we have finished deleting the chado entity
     module_invoke_all('entity_delete', 'chado', $chado_entity);
     

@@ -119,15 +119,26 @@ function chado_organism_update ($form, $form_state) {
 }
 
 function chado_organism_load($entity) {
-
+  
   $previous_db = db_set_active('chado');
   $chado_organism = db_select('organism', 'o')
     ->fields('o')
+    ->condition('organism_id',$entity->chado_id)
     ->execute()
     ->fetchAssoc();
   db_set_active($previous_db);
 
   return (object) $chado_organism;
+}
+
+function chado_organism_delete($entity) {
+
+  $previous_db = db_set_active('chado');
+  $chado_organism = db_delete('organism')
+    ->condition('organism_id',$entity->chado_id)
+    ->execute();
+  db_set_active($previous_db);
+  
 }
 
 /////////////////////////////////////////////////////////////////////////////////////////
