@@ -1,0 +1,8 @@
+package = Tripal
+name = Core
+description = Provides core functionality for the other Tripal modules
+version = 1.0a
+core = 7.x
+
+files[] = tripal_core.entity.inc
+files[] = chado.controller.inc

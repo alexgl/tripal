@@ -1,0 +1,156 @@
+<?php
+
+/**
+ * @file
+ * This file describes all the functions implementing additional organism functionality
+ */
+
+//require('tripal_organism.field.inc');
+ 
+ /**
+ * Implements hook_menu()
+ *
+ * Describes any new menu items that should be created for this module
+ *
+ * @return
+ *   An array of menu items
+ */
+function tripal_organism_menu() {
+  $items = array();
+  
+  return $items;
+}
+
+/////////////////////////////////////////////////////////////////////////////////////////
+// @section Chado Type Operations: Insert/Update/Delete
+/////////////////////////////////////////////////////////////////////////////////////////
+
+/**
+ * Only need to implement if adding form elements not controlled by fields
+ */
+function chado_organism_form ($form, $form_state, $entity) {
+  $form = array();
+  
+   // keep track of the organism id if we have one.  If we do have one then
+   // this would indicate an update as opposed to an insert.
+   $form['organism_id'] = array(
+      '#type' => 'value',
+      '#value' => (isset($entity->chado->organism_id)) ? $entity->chado->organism_id : '',
+   );
+
+   $form['abbreviation']= array(
+      '#type' => 'textfield',
+      '#title' => t('Abbreviation'),
+      '#weight' => 3,
+      '#default_value' => (isset($entity->chado->abbreviation)) ? $entity->chado->abbreviation : '',
+   );
+   $form['genus']= array(
+      '#type' => 'textfield',
+      '#title' => t('Genus'),
+      '#required' => TRUE,
+      '#weight' => 1,
+      '#default_value' => (isset($entity->chado->genus)) ? $entity->chado->genus : '',
+   );
+   $form['species']= array(
+      '#type' => 'textfield',
+      '#title' => t('Species'),
+      '#required' => TRUE,
+      '#weight' => 2,
+      '#default_value' => (isset($entity->chado->species)) ? $entity->chado->species : '',
+   );
+   $form['common_name']= array(
+      '#type' => 'textfield',
+      '#title' => t('Common Name'),
+      '#weight' => 4,
+      '#default_value' => (isset($entity->chado->common_name)) ? $entity->chado->common_name : '',
+   );
+   $form['comment']= array(
+      '#type' => 'textarea',
+      '#rows' => 15,
+      '#title' => t('Description'),
+      '#weight' => 5,
+      '#default_value' => (isset($entity->chado->comment)) ? $entity->chado->comment : '',
+   );
+  
+  return $form;
+}
+
+/**
+ * Only need to implement if adding form elements not controlled by fields
+ */
+function chado_organism_insert ($form, $form_state) {
+  $chado_organism = array(
+    'abbreviation' => $form_state['values']['abbreviation'],
+    'genus' => $form_state['values']['genus'],
+    'species' => $form_state['values']['species'],
+    'common_name' => $form_state['values']['common_name'],
+    'comment' => $form_state['values']['comment'],
+  );
+  $previous_db = db_set_active('chado');
+  $organism_id = db_insert('organism')
+    ->fields( $chado_organism )
+    ->execute();
+  db_set_active($previous_db);
+  
+  $chado_organism['organism_id'] = $organism_id;
+  
+  return $chado_organism;
+}
+
+/**
+ * Only need to implement if adding form elements not controlled by fields
+ */
+function chado_organism_update ($form, $form_state) {
+  $chado_organism = array(
+    'abbreviation' => $form_state['values']['abbreviation'],
+    'genus' => $form_state['values']['genus'],
+    'species' => $form_state['values']['species'],
+    'common_name' => $form_state['values']['common_name'],
+    'comment' => $form_state['values']['comment'],
+  );
+  $previous_db = db_set_active('chado');
+  db_update('organism')
+    ->fields( $chado_organism )
+    ->condition('organism_id',$form_state['values']['organism_id'])
+    ->execute();
+  db_set_active($previous_db);
+  
+  return $chado_organism;
+}
+
+function chado_organism_load($entity) {
+
+  $previous_db = db_set_active('chado');
+  $chado_organism = db_select('organism', 'o')
+    ->fields('o')
+    ->execute()
+    ->fetchAssoc();
+  db_set_active($previous_db);
+
+  return (object) $chado_organism;
+}
+
+/////////////////////////////////////////////////////////////////////////////////////////
+// @section Miscellaneous hooks
+/////////////////////////////////////////////////////////////////////////////////////////
+
+/**
+ * Implements hook_help.
+ *
+ * Displays help and module information.
+ *
+ * @param path 
+ *   Which path of the site we're using to display help
+ * @param arg 
+ *   Array that holds the current path as returned from arg() function
+ */
+function tripal_organism_help($path, $arg) {
+
+  switch ($path) {
+    case "admin/help#tripal_organism":
+      $text = ''; 
+      return $text;
+      break;
+  }
+  
+}

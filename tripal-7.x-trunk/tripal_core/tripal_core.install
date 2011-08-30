@@ -1,0 +1,132 @@
+<?php
+
+/**
+ * @file
+ * Install the tripal core module including it's content type
+ */
+
+/** 
+ * Implementation of hook_install() 
+ */
+function tripal_core_install() {
+	drupal_install_schema('tripal_core');
+	drupal_set_message('In order to view the chado pages correctly you need to copy the *.tpl.php to your bartik theme folder','warning');
+}
+
+/** 
+ * Implementation of hook_uninstall() 
+ */
+function tripal_core_uninstall() {
+	drupal_uninstall_schema('tripal_core');
+}
+
+
+/** 
+ * Implementation of hook_schema() 
+ *
+ * Defines a drupal table which indexes all chado content available to drupal
+ */
+function tripal_core_schema() {
+	$schema['chado_content'] = array(
+		'fields' => array(
+		  // primary key for this table
+   	 	'chado_entity_id' => array(
+   	   	'type' => 'serial',
+   	   	'unsigned' => TRUE,
+   	   	'not null' => TRUE,
+    	),
+		  // the primary key in the chado table utilized by the given type
+   	 	'chado_id' => array(
+   	   	'type' => 'int',
+   	   	'unsigned' => TRUE,
+   	   	'not null' => TRUE,
+    	),
+    	// the type of chado content 
+    	//(ie: chado_stock, chado_feature -usually the name of the chado table prefixed with chado_)
+    	'chado_type' => array(
+    	  'type' => 'varchar',
+    	  'length' => 255,
+    	),
+    	// the date the chado content was added to drupal
+    	'created_on' => array(
+    	  'type' => 'int',
+    	  'not null' => TRUE
+    	),
+    	// uid of the user who added the chado content to drupal
+    	'created_by' => array(
+    	  'type' => 'int',
+    	  'not null' => TRUE,
+    	),
+    	// uid of the user who last modified the drupal/chado content
+    	'last_modified_by' => array(
+    	  'type' => 'int',
+    	  'not null' => TRUE,
+    	),
+  	),
+  	'indexes' => array(
+  	),
+  	'unique' => array(
+    	'chado_id' => array('chado_id', 'chado_type'),
+  	),
+  	'primary key' => array('chado_entity_id'),
+	);
+
+  $schema['chado_type'] = array(
+    'description' => 'Stores information about all defined chado types.',
+    'fields' => array(
+      'type' => array(
+        'description' => 'The machine-readable name of this type.',
+        'type' => 'varchar',
+        'length' => 32,
+        'not null' => TRUE,
+      ),
+      'name' => array(
+        'description' => 'The human-readable name of this type.',
+        'type' => 'varchar',
+        'length' => 255,
+        'not null' => TRUE,
+        'default' => '',
+        'translatable' => TRUE,
+      ),
+      'module' => array(
+        'description' => 'The module defining this chado type.',
+        'type' => 'varchar',
+        'length' => 255,
+      ),
+      'chado_table' => array(
+        'description' => 'The base chado table for this content type.',
+        'type' => 'varchar',
+        'length' => 255,
+        'not null' => TRUE,
+      ),
+      'title_field' => array(
+        'description' => 'The field in the chado_table indicated above that should be used for the page title',
+        'type' => 'varchar',
+        'length' => 255,
+        'not null' => TRUE,      
+      ),
+      'description' => array(
+        'description' => 'A brief description of this type.',
+        'type' => 'text',
+        'size' => 'medium',
+        'translatable' => TRUE,
+      ),
+      'help' => array(
+        'description' => 'Help information shown to the user when creating a {chado} of this type.',
+        'type' => 'text',
+        'size' => 'medium',
+        'translatable' => TRUE,
+      ),
+      'custom' => array(
+        'description' => 'A boolean indicating whether this type is defined by a module (FALSE) or by a user via Add content type (TRUE).',
+        'type' => 'int',
+        'not null' => TRUE,
+        'default' => 0,
+        'size' => 'tiny',
+      ),
+    ),
+    'primary key' => array('type'),
+  );
+  
+  return $schema;
+}

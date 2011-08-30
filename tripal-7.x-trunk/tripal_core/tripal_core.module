@@ -1,0 +1,156 @@
+<?php
+
+require('tripal_core.entity.inc');
+require('tripal_core.admin.inc');
+require('tripal_core.api.inc');
+
+/** 
+ * Implements hook_menu()
+ *
+ * @return 
+ *   An array of menu items
+ */
+function tripal_core_menu() {
+	$items = array();
+  ///// Entity Menu ///////////////////////////////
+  // view a single chado entity
+  $items['chado/%chado'] = array(
+    'title callback' => 'chado_page_title',
+    'title arguments' => array(1,2),
+    'page callback' => 'chado_page_view',
+    'page arguments' => array(1,2),
+    'access arguments' => array('view all chado content'),
+    'type' => MENU_CALLBACK,
+  );  
+  $items['chado/%chado/view'] = array(
+    'title' => 'View',
+    'type' => MENU_DEFAULT_LOCAL_TASK, 
+    'weight' => -10,
+  );
+
+  // add chado entities (type not provided)
+  $items['chado/add'] = array(
+    'title' => 'Create Chado Content',
+    'page callback' => 'tripal_core_add_chado_content',
+    'access arguments' => array('view all chado content'),
+  );
+
+  // add chado entities (type provided)
+  $items['chado/%chado_type/add'] = array(
+    'title' => 'Create Chado Content',
+    'page callback' => 'chado_add',
+    'page arguments' => array(1),
+    'access arguments' => array('view all chado content'),
+  ); 
+
+  // edit a chado entity
+  $items['chado/%chado/edit'] = array(
+    'title' => 'Edit',
+    'page callback' => 'chado_edit',
+    'page arguments' => array(1),
+    'access arguments' => array('view all chado content'),
+    'type' => MENU_DEFAULT_LOCAL_TASK, 
+  );  
+
+  // delete a chado entity
+  $items['chado/%chado/delete'] = array(
+    'title' => 'Confirm Deletion',
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('chado_delete_confirm_form',1),
+    'access arguments' => array('view all chado content'),
+    'type' => MENU_CALLBACK, 
+  ); 
+  
+  ///// Administration Menu ///////////////////////
+	$items['admin/chado_content'] = array( 
+    'title' => 'Biological Content',
+    'access arguments' => array('administer content'),
+    'page callback' => 'tripal_core_manage_chado_content', 
+    'description' => 'Create and manage biological (chado) content.',
+    'weight' => -9
+  );
+  
+  $items['admin/chado_content/delete/%'] = array( 
+    'title' => 'Biological Content',
+    'access arguments' => array('administer content'),
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('tripal_core_delete_multiple_confirm_form',3)
+  );
+	
+	$items['admin/structure/chado'] = array( 
+    'title' => 'Biological (Chado) Content',
+    'access arguments' => array('administer chado content'),
+    'page callback' => 'tripal_core_manage_structure', 
+    'description' => 'Manage biological content types including display names and fields.',
+  );
+  
+  $items['admin/structure/chado/add'] = array( 
+    'title' => 'Create Chado Content Type',
+    'access arguments' => array('administer chado content'),
+    'page callback' => 'drupal_get_form', 
+    'page arguments' => array('tripal_core_add_content_types_form'),
+  );
+
+  $items['admin/structure/chado/edit/%chado_type'] = array( 
+    'title' => 'Edit Chado Content Type',
+    'access arguments' => array('administer chado content'),
+    'page callback' => 'drupal_get_form', 
+    'page arguments' => array('tripal_core_edit_content_types_form',4),
+  ); 
+  
+  $items['admin/structure/chado/delete_confirm/%chado_type'] = array( 
+    'title' => 'Delete Chado Content Type',
+    'access arguments' => array('administer chado content'),
+    'page callback' => 'drupal_get_form', 
+    'page arguments' => array('tripal_core_delete_content_types_form',4),
+  );  
+	
+	return $items;
+}
+
+function chado_type_to_arg ($arg, $map, $index) {
+  return $arg;
+}
+
+function chado_type_load ($arg) {
+  return $arg;
+}
+
+function tripal_core_theme () {
+  $items = array();
+  
+  $items['chado'] = array(
+    'render element' => 'element', 
+    'template' => 'chado',  	
+  );
+  
+  $items['tripal_core_manage_chado_content_form'] = array(
+    'render element' => 'form'
+  );
+  
+  $items['chado_add_list'] = array(
+    'variables' => array('content' => NULL),
+  );
+  
+  return $items;
+}
+
+/**
+ * Implements hook_permission()
+ *
+ * Provides permissions for this module
+ *
+ * @return
+ *   An array of available permissions
+ */
+function tripal_core_permission(){
+  return array(
+    'administer chado content' =>  array(
+      'title' => t('Administer Chado Content'),
+      'restrict access' => TRUE,
+    ),
+    'view all chado content' => array(
+      'title' => t('View All Chado Content'),
+    ),
+  );
+}

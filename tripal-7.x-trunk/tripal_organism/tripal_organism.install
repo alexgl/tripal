@@ -1,0 +1,49 @@
+<?php
+
+/**
+ * @file
+ * Install the tripal organism module including it's content type
+ */
+
+/** 
+ * Implementation of hook_install() 
+ */
+function tripal_organism_install() {
+
+  // Add Chado Content Type
+  $info = array(
+    'type' => 'organism',
+    'name' => 'Organism',
+    'chado_table' => 'organism',
+    'title_field' => 'abbreviation',
+    'description' => 'The organismal taxonomic classification. Note that phylogenies are represented using the phylogeny module, and taxonomies can be represented using the cvterm module or the phylogeny module.',
+    'help' => '',
+    'custom' => 0,
+    'module' => 'tripal_organism',  
+  );
+  chado_type_save($info);
+  
+}
+
+/** 
+ * Implementation of hook_uninstall() 
+ */
+function tripal_organism_uninstall() {
+
+  // Gather all the example content that might have been created while this
+  // module was enabled.  Simple selects still use db_query().
+  // http://api.drupal.org/api/function/db_query/7
+  $sql = 'SELECT chado_entity_id FROM {chado_content} c WHERE c.chado_type = :type';
+  $result = db_query($sql, array(':type' => 'organism'));
+  $ids = array();
+  foreach ($result as $row) {
+    $ids[] = $row->chado_entity_id;
+  }
+
+  // Delete all the nodes at once
+  // http://api.drupal.org/api/function/node_delete_multiple/7
+  chado_delete_multiple($ids);
+
+	chado_type_delete('organism');
+	
+}
