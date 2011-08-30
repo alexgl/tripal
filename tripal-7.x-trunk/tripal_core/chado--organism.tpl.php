@@ -1,7 +1,6 @@
 
 <?php
  //dpm(get_defined_vars(), 'variables');
-  dpm($theme_hook_suggestions, 'theme suggestions');
  $entity = $element['#entity'];
 ?>
 
