@@ -12,7 +12,8 @@ function tripal_core_admin_paths() {
   $paths = array(
     'chado/add' => TRUE,
     'chado/*/add' => TRUE,
-    'chado/*/*/edit' => TRUE,
+    'chado/*/edit' => TRUE,
+    'chado/*/delete' => TRUE,
   );
   return $paths;
 }
@@ -362,14 +363,19 @@ function tripal_core_manage_chado_content_form ($form, &$form_state) {
     '#title' => 'SHOW ONLY ITEMS WHERE'
   );
   
-  
+  $type_options = array();
+  $type_options[0] = '<ANY>';
+  foreach ($entity_info['bundles'] as $key => $bundle) {
+    $type_options[$key] = $bundle['label'];
+  }
   $form['filters']['chado_type'] = array(
     '#type' => 'select',
     '#title' => t('type'),
-    '#options' => array_keys($entity_info['bundles']),
+    '#options' => $type_options,
   );
   
   $created_user_options = array();
+  $created_user_options[0] = '<ANY>';
   $result = db_query('SELECT created_by FROM {chado_content} GROUP BY created_by');
   foreach ($result as $r) {
     $user = user_load($r->created_by);
@@ -382,6 +388,7 @@ function tripal_core_manage_chado_content_form ($form, &$form_state) {
   );  
   
   $last_modified_user_options = array();
+  $last_modified_user_options[0] = '<ANY>';
   $result = db_query('SELECT last_modified_by FROM {chado_content} GROUP BY last_modified_by');
   foreach ($result as $r) {
     $user = user_load($r->last_modified_by);
@@ -429,12 +436,24 @@ function tripal_core_manage_chado_content_form ($form, &$form_state) {
   );
   
   //SELECT chado_entity_id, chado_type, chado_id, created_on, created_by, last_modified_by FROM {chado_content}
-  $query = db_select('chado_content','c')->extend('PagerDefault')->extend('TableSort');
-  $query->fields('c');
-  $query->limit(50);
-  $query
+  $query = db_select('chado_content','c')->extend('PagerDefault')->extend('TableSort')
+    ->fields('c')
+    ->limit(50)
     ->orderBy('chado_entity_id', 'DESC') // Sort by chado_entity_id first.
     ->orderByHeader($header); // Then by what has been selected in the table header
+    
+  // Add filtering
+  if (!empty($form_state['storage']['filter'])) {
+    if (isset($form_state['storage']['filter']['type']) && $form_state['storage']['filter']['type']) {
+      $query->condition('chado_type', $form_state['storage']['filter']['type']);
+    }
+    if (isset($form_state['storage']['filter']['created_by']) && $form_state['storage']['filter']['created_by']) {
+      $query->condition('created_by', $form_state['storage']['filter']['created_by']);
+    }
+    if (isset($form_state['storage']['filter']['last_modified_by']) && $form_state['storage']['filter']['last_modified_by']) {
+      $query->condition('last_modified_by', $form_state['storage']['filter']['last_modified_by']);
+    }
+  }
   $result = $query->execute();
   
   $options = array();
@@ -453,7 +472,9 @@ function tripal_core_manage_chado_content_form ($form, &$form_state) {
       'created_on' => date(DATE_RFC2822, $entry->created_on), 
       'created_by' => $users[$entry->created_by]->name, 
       'last_modified_by' => $users[$entry->last_modified_by]->name,      
-      'operations' => l('view','chado/'.$entry->chado_entity_id) . ' &nbsp ' . l('edit','chado/'.$entry->chado_entity_id.'/edit') . ' &nbsp ' . l('delete','chado/'.$entry->chado_entity_id.'/delete')
+      'operations' => l('view','chado/'.$entry->chado_entity_id) 
+        . ' &nbsp ' . l('edit','chado/'.$entry->chado_entity_id.'/edit') 
+        . ' &nbsp ' . l('delete','chado/'.$entry->chado_entity_id.'/delete')
     );
     $form_state['storage']['entities'][$entry->chado_entity_id] = $entry;
   }
@@ -469,7 +490,9 @@ function tripal_core_manage_chado_content_form ($form, &$form_state) {
 }
 
 function tripal_core_manage_chado_content_form_submit ($form, &$form_state) {
-
+  // needed so form_state is available in form
+  $form_state['rebuild'] = TRUE;
+  
   switch ($form_state['clicked_button']['#name']) {
     case 'update':
       switch ($form_state['values']['update_action']) {
@@ -479,7 +502,9 @@ function tripal_core_manage_chado_content_form_submit ($form, &$form_state) {
       }
     break;
     case 'filter':
-    
+      $form_state['storage']['filter']['type'] = $form_state['values']['chado_type'];
+      $form_state['storage']['filter']['created_uid'] = $form_state['values']['created_by'];
+      $form_state['storage']['filter']['last_modified_uid'] = $form_state['values']['last_modified_by'];
     break;
   }
 }

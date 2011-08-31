@@ -36,6 +36,11 @@ function tripal_core_entity_info() {
           ),
         ),
       ),
+      'view modes' => array(
+        'full' => array(
+          'label' => t('Full'),
+        ),
+      ),
     ),
   );
   
@@ -112,24 +117,6 @@ function chado_load_multiple($chado_entity_ids, $conditions = array(), $reset = 
 // Viewing Entities /////////////////////////////////////////////////////////////////////
 
 /**
- * Build Viewing modes for chado entities
- *
- * @params $entity_type
- *   The type of entity modes are buing built for
- * @return
- *   An array of view modes
- */
-function chado_build_modes($entity_type) {
-  $modes = array();
-  if ($obj_type == 'chado') {
-    $modes = array(
-      'full' => t('Full'),
-    );
-  }
-  return $modes;
-}
-
-/**
  * Returns the title of the chado page
  *
  * @todo Change title to name (uniquename)
@@ -155,7 +142,7 @@ function chado_page_title ($chado_entity) {
 function chado_page_view($entity, $view_mode = 'full', $langcode = NULL){
 
   // Remove previously built content, if exists
-  $entity->content = array();
+  $content = array();
   
   // Use controller to build view
   //$controller = entity_get_controller('chado');
@@ -163,33 +150,34 @@ function chado_page_view($entity, $view_mode = 'full', $langcode = NULL){
   
   // Build the fields content
   field_attach_prepare_view(
-    'entity',
+    'chado',
     array($entity->chado_entity_id => $entity),
     $view_mode
   );
  
-  entity_prepare_view('entity', array($entity->chado_entity_id => $entity));
+  entity_prepare_view('chado', array($entity->chado_entity_id => $entity));
  
-  $entity->content += field_attach_view(
-      'entity',
+  $content += field_attach_view(
+      'chado',
       $entity, $view_mode
   );
   
   // specify the theme to use and set the #entity
-  $entity->content += array(
+  $content += array(
     '#theme'     => 'chado',
     '#element'   => $entity,
-    '#entity'    => $entity, 
+    //'#entity'    => $entity, 
     '#view_mode' => 'full',
     '#language'  => NULL,
   );  
   
-	return $entity->content;
+	return $content;
 }
 
 function tripal_core_preprocess_chado(&$vars, $hook) {
+  //dpm($vars, 'variables in preprocess');
   $vars['theme_hook_suggestions'][] = 'chado';
-  $vars['theme_hook_suggestions'][] = 'chado__' . $vars['element']['#entity']->chado_type;
+  $vars['theme_hook_suggestions'][] = 'chado__' . $vars['element']['#element']->chado_type;
 }
 
 // Chado Form ////////////////////////////////////////////////////////////////////////////
@@ -390,7 +378,7 @@ function chado_form_submit($form, &$form_state) {
       $update = TRUE;
       break;
     case 'delete':
-    
+      drupal_goto('chado/'.$form_state['storage']['chado_entity']->chado_entity_id.'/delete');
       break;
   }
   

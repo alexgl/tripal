@@ -18,20 +18,20 @@ class ChadoController extends DrupalDefaultEntityController{
     
     // insert new entity
     if (!$update) {
-      // Save any fields attached through the Field API
-      field_attach_insert('chado', $chado_entity);
-      
       // Save the default chado fields
       drupal_write_record($entity_info['base table'], $chado_entity);
+      
+      // Save any fields attached through the Field API
+      field_attach_insert('chado', $chado_entity);
       
       // Tell Drupal that we have finished saving the chado entity
       module_invoke_all('entity_insert', 'chado', $chado_entity);
     } else {
-      // Save any fields attached through the Field API
-      field_attach_update('chado', $chado_entity);
-      
       // Save the default chado fields
       drupal_write_record($entity_info['base table'], $chado_entity, 'chado_entity_id');
+      
+      // Save any fields attached through the Field API
+      field_attach_update('chado', $chado_entity);
       
       // Tell Drupal that we have finished saving the chado entity
       module_invoke_all('entity_update', 'chado', $chado_entity);    
@@ -68,6 +68,7 @@ class ChadoController extends DrupalDefaultEntityController{
       $this->attachLoad($entities);
     }
     
+    //dpm($entities, 'entities');
     return $entities;
   
   }
@@ -88,7 +89,11 @@ class ChadoController extends DrupalDefaultEntityController{
           $entity->chado = $function($entity);
         }
       }
+      
+      //add field content
+      field_attach_load('chado', $entities_of_type);
     }
+    
   }
 
   /**

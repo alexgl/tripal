@@ -13,20 +13,6 @@ require('tripal_core.api.inc');
 function tripal_core_menu() {
 	$items = array();
   ///// Entity Menu ///////////////////////////////
-  // view a single chado entity
-  $items['chado/%chado'] = array(
-    'title callback' => 'chado_page_title',
-    'title arguments' => array(1,2),
-    'page callback' => 'chado_page_view',
-    'page arguments' => array(1,2),
-    'access arguments' => array('view all chado content'),
-    'type' => MENU_CALLBACK,
-  );  
-  $items['chado/%chado/view'] = array(
-    'title' => 'View',
-    'type' => MENU_DEFAULT_LOCAL_TASK, 
-    'weight' => -10,
-  );
 
   // add chado entities (type not provided)
   $items['chado/add'] = array(
@@ -43,13 +29,29 @@ function tripal_core_menu() {
     'access arguments' => array('view all chado content'),
   ); 
 
+  // view a single chado entity
+  $items['chado/%chado'] = array(
+    'title callback' => 'chado_page_title',
+    'title arguments' => array(1),
+    'page callback' => 'chado_page_view',
+    'page arguments' => array(1),
+    'access arguments' => array('view all chado content'),
+    'type' => MENU_CALLBACK,
+  );  
+  $items['chado/%chado/view'] = array(
+    'title' => 'View',
+    'type' => MENU_DEFAULT_LOCAL_TASK, 
+    'weight' => -10,
+  );
+  
   // edit a chado entity
   $items['chado/%chado/edit'] = array(
     'title' => 'Edit',
     'page callback' => 'chado_edit',
     'page arguments' => array(1),
     'access arguments' => array('view all chado content'),
-    'type' => MENU_DEFAULT_LOCAL_TASK, 
+    'type' => MENU_LOCAL_TASK, 
+    'context' => MENU_CONTEXT_PAGE | MENU_CONTEXT_INLINE, 
   );  
 
   // delete a chado entity

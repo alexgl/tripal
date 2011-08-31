@@ -1,6 +1,6 @@
 
 <?php
- $entity = $element['#entity'];
+ $entity = $element['#element'];
 ?>
 
 <!-- Authoring information -->
@@ -24,3 +24,14 @@ $modification_user = user_load($entity->last_modified_by);
       <td><?php print $modification_user->name ?></td>
     </tr>       	                                
  </table>
+ 
+<br>
+<h2>Additional Information</h2>
+<?php 
+  // additional content added though field UI (manage fields on structure page)
+  foreach ($element as $key => $info) {
+    if (!preg_match('/^#/',$key)) {
+      print render($element[$key]);
+    }
+  }
+?>
