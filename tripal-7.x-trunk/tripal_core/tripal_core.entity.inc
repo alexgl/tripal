@@ -135,15 +135,8 @@ function chado_build_modes($entity_type) {
  * @todo Change title to name (uniquename)
  */
 function chado_page_title ($chado_entity) {
-
-  // get the chado field for this chado content type meant to be the title
-  $title_field = db_select('chado_type','c')
-    ->fields('c', array('title_field'))
-    ->condition('type', $chado_entity->chado_type)
-    ->execute()
-    ->fetchField(0);
     
-  return $chado_entity->chado->{$title_field};
+  return chado_get_title($chado_entity->chado_type,$chado_entity->chado_id);
   
 }
 
