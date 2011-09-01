@@ -63,7 +63,7 @@ function tripal_core_menu() {
     'type' => MENU_CALLBACK, 
   ); 
   
-  ///// Administration Menu ///////////////////////
+  ///// Content Administration Menu ///////////////////////
 	$items['admin/chado_content'] = array( 
     'title' => 'Biological Content',
     'access arguments' => array('administer content'),
@@ -79,6 +79,7 @@ function tripal_core_menu() {
     'page arguments' => array('tripal_core_delete_multiple_confirm_form',3)
   );
 	
+	//// Structure Administration Menu /////////////////////////
 	$items['admin/structure/chado'] = array( 
     'title' => 'Biological (Chado) Content',
     'access arguments' => array('administer chado content'),
@@ -93,14 +94,27 @@ function tripal_core_menu() {
     'page arguments' => array('tripal_core_add_content_types_form'),
   );
 
-  $items['admin/structure/chado/edit/%chado_type'] = array( 
+	$items['admin/structure/chado/manage/%chado_type'] = array(
+    'title callback' => 'chado_type_page_title',
+    'title arguments' => array(4),
+    'access arguments' => array('administer chado content'),
+    'page callback' => 'chado_type_configuration_page', 
+    'page arguments' => array(4),	
+	);
+	
+	$items['admin/structure/chado/manage/%chado_type/view'] = array(
+		'title' => 'View', 
+		'type' => MENU_DEFAULT_LOCAL_TASK,
+	);
+
+  $items['admin/structure/chado/manage/%chado_type/edit'] = array( 
     'title' => 'Edit Chado Content Type',
     'access arguments' => array('administer chado content'),
     'page callback' => 'drupal_get_form', 
-    'page arguments' => array('tripal_core_edit_content_types_form',4),
+    'page arguments' => array('tripal_core_edit_content_types_form',3),
   ); 
   
-  $items['admin/structure/chado/delete_confirm/%chado_type'] = array( 
+  $items['admin/structure/chado/manage/%chado_type/confirm_delete'] = array( 
     'title' => 'Delete Chado Content Type',
     'access arguments' => array('administer chado content'),
     'page callback' => 'drupal_get_form', 

@@ -56,10 +56,10 @@ function tripal_core_list_chado_types () {
   $rows = array();
   foreach ($results as $r) {
     $links = array();
-    $links[] =  l(t('edit'),'admin/structure/chado/edit/'.$r->type);
-    $links[] = l(t('delete'),'admin/structure/chado/delete_confirm/'.$r->type);
+    $links[] =  l(t('edit'),'admin/structure/chado/manage/'.$r->type.'/edit');
+    $links[] = l(t('delete'),'admin/structure/chado/'.$r->type.'/confirm_delete');
 	  $links[] = l(t('manage fields'), 'admin/structure/chado/manage/' . $r->type . '/fields');
-    $rows[] = array($r->name, $r->description, implode(str_repeat('&nbsp',3),$links));
+    $rows[] = array(l($r->name,'admin/structure/chado/manage/'.$r->type), $r->description, implode(str_repeat('&nbsp',3),$links));
   }
 
   $output = array(
@@ -68,6 +68,22 @@ function tripal_core_list_chado_types () {
     '#rows' => $rows,
   );
   return $output;
+}
+
+function chado_type_page_title ($chado_type) {
+	$entity_info = entity_get_info('chado');
+	return $entity_info['bundles'][$chado_type]['label'] . ' Administration';
+}
+
+function chado_type_configuration_page ($chado_type) {
+	$output = '';
+	
+	$function = 'chado_'.$chado_type.'_configuration_page';
+	if (function_exists($function)) {
+		$output .= $function;
+	}
+	
+	return $output;
 }
 
 /**

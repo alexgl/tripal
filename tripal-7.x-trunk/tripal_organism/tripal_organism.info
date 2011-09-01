@@ -3,5 +3,6 @@ name = Organism
 description = Makes chado organisms available as web content
 version = 1.0a
 core = 7.x
+configure = admin/structure/chado/manage/organism
 
 dependencies[] = tripal_core

@@ -31,7 +31,9 @@ function tripal_core_entity_info() {
         'default' => array(
           'label' => t('Default'),
           'admin' => array(
-            'path' => 'admin/structure/chado/manage/default',
+						'path' => 'admin/structure/chado/manage/%chado_type',
+						'real path' => 'admin/structure/chado/manage/default',
+						'bundle argument' => 4,
             'access arguments' => array('administer chado content'),
           ),
         ),
@@ -49,7 +51,9 @@ function tripal_core_entity_info() {
     $entity['chado']['bundles'][$type->type] = array(
       'label' => $type->name,
       'admin' => array(
-        'path' => 'admin/structure/chado/manage/' . $type->type,
+      	'path' => 'admin/structure/chado/manage/%chado_type',
+        'real path' => 'admin/structure/chado/manage/' . $type->type,
+        'bundle argument' => 4,
         'access arguments' => array('administer chado content'),
       ),
     );
