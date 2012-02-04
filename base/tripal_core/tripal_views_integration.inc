@@ -276,7 +276,7 @@ function tripal_core_views_integration_new_setup_form(&$form_state){
         '#options' => $columns,
         '#required' => FALSE,
       );
-      
+
       $form['view_setup_table']["fields_filter_handler_$mview_id-$i"] = array(
         '#type' => 'select',
         '#prefix' => "<div class=\"fields-filter-handler\">",
@@ -284,7 +284,7 @@ function tripal_core_views_integration_new_setup_form(&$form_state){
         '#options' => $handlers_filters,
         '#required' => FALSE,
       );
-      
+
       $form['view_setup_table']["fields_field_handler_$mview_id-$i"] = array(
          '#type' => 'select',
          '#prefix' => "<div class=\"fields-field-handler\">",
@@ -292,17 +292,17 @@ function tripal_core_views_integration_new_setup_form(&$form_state){
          '#options' => $handlers_fields,
          '#required' => FALSE,
       );
-      
+
       $form['view_setup_table']["fields_end_$i"] = array(
         '#type' => 'markup',
         '#value' => "</div>",
       );
       $i++;
-   }
-   $form['view_setup_table']['save'] = array(
+    }
+    $form['view_setup_table']['save'] = array(
       '#type'  => 'submit',
       '#value' => t('Save'),
-   );
+    );
 
     $data['row_count'] = $i - 1;
   }
@@ -360,7 +360,7 @@ function tripal_core_views_integration_new_setup_form_submit($form, &$form_state
         'chado_column' => $form['view_setup_table']["fields_join_column_$mview_id-$i"]['#options'][$form_state['values']["fields_join_column_$mview_id-$i"]],
     );
     drupal_write_record('tripal_mviews_join', $mview_join_record);
-    
+
     $handlers_record = array(
       'setup_id' => $tripal_views_integration_record['setup_id'],
       'column_name' => $key,//TODO: should we change this to an mview_join_id from tripal_view_join?
@@ -371,5 +371,29 @@ function tripal_core_views_integration_new_setup_form_submit($form, &$form_state
     $i++;
   }
 
+}
+
+function tripal_core_views_integration_edit_setup_form($setup_id){
+
+  //tvi = tripal_views_integration
+  $tvi_query = db_fetch_object(db_query("SELECT * FROM tripal_views_integration WHERE setup_id='$setup_id"));
+  $form_state['values']['mview_id'] = $tvi_query->mview_id;
+  $form_state['values']['row_name'] = $tvi_query->name;
+  $form_state['values']['row_description'] = $tvi_query->mview_id;
+
+  //tvj = tripal_mview_join
+  $tmj_query = db_query("SELECT * FROM tripal_mviews_join WHERE setup_id = '$setup_id'");
+  $i = 1;
+  while($tmj_row = db_fetch_object($tmj_query)){
+//TODO: check if this may break since don't know in what order the rows are saved
+//     $form_state['values']['row_description'] = $tvi_query->mview_id;
+    
+    
+    $handlers = db_fetch_object(db_query("SELECT handler_filter, handler_field FROM {tripal_views_handlers} WHERE setup_id = '$setup_id' AND column_name = '$column_name';"));
+    
+    $i++;
+  }
+
+  return tripal_core_views_integration_new_setup_form($form_state);
 }
 
